@@ -3,9 +3,19 @@
 import Image from "next/image";
 import {useState} from "react";
 
+interface VideoMetadata {
+	thumbnail: string;
+	title: string;
+	length: number;
+}
+
 export default function Download() {
 	const [link, setLink] = useState("");
-	const [videoMetadata, setVideoMetadata] = useState();
+	const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({
+		thumbnail: "",
+		title: "",
+		length: 0,
+	});
 	const [video, setVideo] = useState<Blob>();
 
 	function getInfoVideo(url: string) {
@@ -19,7 +29,7 @@ export default function Download() {
 
 			return [videoId, canal];
 		} else {
-			return null;
+			return ["", ""];
 		}
 	}
 	async function getVideoMetadata(videoLink: string) {
@@ -88,11 +98,11 @@ export default function Download() {
 							/>
 							<div className="flex-col ml-5 w-6/12">
 								<h2 className="text-xl font-semibold ">
-									{videoMetadata.Title}
+									{videoMetadata.title}
 								</h2>
 								<p>
-									{Math.floor(videoMetadata.Length / 60)}:
-									{videoMetadata.Length % 60}
+									{Math.floor(videoMetadata.length / 60)}:
+									{videoMetadata.length % 60}
 								</p>
 								<button
 									className="mt-5 bottom-2 p-2 bg-neutral-800/20 rounded-lg"
@@ -102,7 +112,6 @@ export default function Download() {
 								>
 									Baixar
 								</button>
-								{video && <video src={video}></video>}
 							</div>
 						</div>
 					</div>
