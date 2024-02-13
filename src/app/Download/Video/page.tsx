@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 
 interface VideoMetadata {
 	thumbnail: string;
@@ -16,7 +16,16 @@ export default function Download() {
 		title: "",
 		length: 0,
 	});
-	const [video, setVideo] = useState<Blob>();
+	const [video, setVideo] = useState<string>("");
+
+	useEffect(() => {
+		if (video !== "") {
+			const link = document.createElement("a");
+			link.href = video;
+			link.download = videoMetadata.title + ".mp4";
+			link.click();
+		}
+	}, [video]);
 
 	function getInfoVideo(url: string) {
 		const regex =
@@ -34,6 +43,14 @@ export default function Download() {
 	}
 	async function getVideoMetadata(videoLink: string) {
 		const infoVideo = getInfoVideo(videoLink);
+		if (infoVideo[0] === "" || infoVideo[1] === "") {
+			alert(
+				infoVideo[1] === ""
+					? "O Link precisa conter o nome do canal, procure copiar o link completo. Erro ao buscar informações do vídeo, verifique se o link digitado está correto ou recarregue a página."
+					: "Erro ao buscar informações do vídeo, verifique se o link digitado está correto ou recarregue a página."
+			);
+			return;
+		}
 		const pageResponse = await fetch(
 			`/api/getVideoInfo/${infoVideo[0]}/${infoVideo[1]}`,
 			{
@@ -57,13 +74,25 @@ export default function Download() {
 				},
 			}
 		);
-		const metadata = await pageResponse.blob();
-		setVideo(metadata);
+		const responseData = await pageResponse.json();
+		// Decodifica a representação base64 para obter os bytes originais
+		const byteCharacters = atob(responseData.video);
+		const byteNumbers = new Array(byteCharacters.length);
+		for (let i = 0; i < byteCharacters.length; i++) {
+			byteNumbers[i] = byteCharacters.charCodeAt(i);
+		}
+		// Transforma em um video (Blob)
+		const byteArray = new Uint8Array(byteNumbers);
+		const blob = new Blob([byteArray], {type: "video/mp4"});
+
+		// Cria uma URL para o Blob
+		const url = URL.createObjectURL(blob);
+		setVideo(url);
 	}
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-between pt-24">
-			<div className="justify-around grid-cols-2 ">
+			<div className="justify-around grid-cols-2">
 				<h1 className="text-4xl font-semibold p-10">
 					Cole o link do vídeo que você deseja baixar:
 				</h1>
@@ -86,8 +115,8 @@ export default function Download() {
 						Enviar
 					</button>
 				</div>
-				{videoMetadata && (
-					<div className="w-10/12 mt-28 mb-5 flex-row mx-20 rounded-lg border px-5 py-4 transition-colors bg-gray-100 border-neutral-700 bg-neutral-800/50">
+				{videoMetadata.length !== 0 && (
+					<div className="box-content aspect-auto w-10/12 mt-28 mb-5 flex-row mx-20 rounded-lg border px-5 py-4 transition-colors bg-gray-100 border-neutral-700 bg-neutral-800/50">
 						<div className="flex items-center">
 							<Image
 								className="rounded-lg drop-shadow-lg"
@@ -102,7 +131,7 @@ export default function Download() {
 								</h2>
 								<p>
 									{Math.floor(videoMetadata.length / 60)}:
-									{videoMetadata.length % 60}
+									{(videoMetadata.length % 60).toString().padStart(2, "0")}
 								</p>
 								<button
 									className="mt-5 bottom-2 p-2 bg-neutral-800/20 rounded-lg"
